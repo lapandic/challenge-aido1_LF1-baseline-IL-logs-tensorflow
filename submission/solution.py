@@ -12,6 +12,36 @@ ROBOT_SPEED = 0.30
 # Distance (diameter) between the center of the robot wheels (10.2cm)
 WHEEL_DIST = 0.102
 
+def inverse_kinematics(prediction):
+    # Distance between the wheels
+    baseline = 0.102
+
+    original_v = 0.386400014162
+    original_omega = prediction
+
+    vel = 0.25
+    omega = original_omega * vel / original_v
+
+
+    # assuming same motor constants k for both motors
+    k_r = 27.0
+    k_l = 27.0
+    gain = 1.0
+    trim = 0.0
+    radius = 0.0318
+
+    # adjusting k by gain and trim
+    k_r_inv = (gain + trim) / k_r
+    k_l_inv = (gain - trim) / k_l
+
+    omega_r = (vel + 0.5 * omega * baseline) / radius
+    omega_l = (vel - 0.5 * omega * baseline) / radius
+
+    # conversion from motor rotation rate to duty cycle
+    u_r = omega_r * k_r_inv
+    u_l = omega_l * k_l_inv
+    return [u_l, u_r]
+
 def solve(gym_environment, cis):
     # python has dynamic typing, the line below can help IDEs with autocompletion
     assert isinstance(cis, ChallengeInterfaceSolution)
@@ -55,7 +85,9 @@ def solve(gym_environment, cis):
             action = sess.run(y, feed_dict={
                 x: observation
             })
-            action = [action[0, 1], action[0, 0]]
+            action = action[0,0]
+
+            action = inverse_kinematics(action)
 
             # we tell the environment to perform this action and we get some info back in OpenAI Gym style
             observation, reward, done, info = env.step(action)

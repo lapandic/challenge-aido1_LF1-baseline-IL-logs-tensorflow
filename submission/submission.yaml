@@ -1,6 +1,6 @@
-challenge: aido1_LF1_r3-v3
+challenge: aido1_LFV_r1-v3
 protocol: aido1_remote3-v3
-user-label: "Baseline solution using imitation learning from logs"
+user-label: "LFV bd test"
 user-payload: {}
 description: |
-    This is a simple baseline solution for an agent learns to imitate behavior from logs
+    LFV bd test
