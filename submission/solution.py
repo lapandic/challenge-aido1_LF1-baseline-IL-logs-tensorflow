@@ -2,7 +2,7 @@
 import gym
 from graph_utils import load_graph
 import tensorflow as tf
-from cnn_predictions import fun_img_preprocessing
+from cnn_predictions import fun_img_preprocessing, CNN_image_stack
 # noinspection PyUnresolvedReferences
 import gym_duckietown_agent  # DO NOT CHANGE THIS IMPORT (the environments are defined here)
 from duckietown_challenges import wrap_solution, ChallengeSolution, ChallengeInterfaceSolution, InvalidSubmission
@@ -71,7 +71,11 @@ def solve(gym_environment, cis):
 
     # We access the input and output nodes
     x = graph.get_tensor_by_name('prefix/x:0')
-    y = graph.get_tensor_by_name('prefix/ConvNet/fc_layer_2/BiasAdd:0')
+    y = graph.get_tensor_by_name('prefix/ConvNet/fc_layer_out/BiasAdd:0')
+
+    cnn_image_stack = CNN_image_stack()
+    execute_action = False
+    counter = 0
     # We launch a Session
     with tf.Session(graph=graph) as sess:
 
@@ -80,17 +84,28 @@ def solve(gym_environment, cis):
 
             # 48x96 is the image size the model expects
             # Additionally img is converted to greyscale
-            observation = fun_img_preprocessing(observation, 48, 96)
+            img = fun_img_preprocessing(observation, 48, 96)
             # this outputs omega, the desired angular velocity
-            action = sess.run(y, feed_dict={
-                x: observation
-            })
-            action = action[0,0]
 
-            action = inverse_kinematics(action)
+            cnn_image_stack.add_to_stack(img)
+
+            if counter == cnn_image_stack.full_img_stack_len*2:
+                execute_action = True
+
+            if execute_action:
+                action = sess.run(y, feed_dict={
+                    x: cnn_image_stack.img_stack
+                })
+                action = action[0,0]
+
+                action = inverse_kinematics(action)
+            else:
+                action = [0.1,0.1]
 
             # we tell the environment to perform this action and we get some info back in OpenAI Gym style
             observation, reward, done, info = env.step(action)
+            if execute_action == False:
+                counter = counter + 1
             # here you may want to compute some stats, like how much reward are you getting
             # notice, this reward may no be associated with the challenge score.
 
