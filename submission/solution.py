@@ -93,14 +93,21 @@ def solve(gym_environment, cis):
                 execute_action = True
 
             if execute_action:
-                action = sess.run(y, feed_dict={
+                output = sess.run(y, feed_dict={
                     x: cnn_image_stack.img_stack
                 })
-                action = action[0,0]
 
-                action = inverse_kinematics(action)
+                #print("Output: {}".format(output))
+
+                prediction = output[0][0][0]
+
+                #print("Prediction: {}".format(prediction))
+
+                action = inverse_kinematics(prediction)
             else:
                 action = [0.1,0.1]
+
+            #print("Action to execute: {}".format(action))
 
             # we tell the environment to perform this action and we get some info back in OpenAI Gym style
             observation, reward, done, info = env.step(action)
